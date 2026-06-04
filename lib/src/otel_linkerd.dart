@@ -2,7 +2,6 @@
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
-import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_linkerd_suppression.dart';
 
@@ -52,54 +51,69 @@ Future<T> tracedLinkerd<T>({
   final t = tracer ?? OTel.tracerProvider().getTracer('otel_linkerd');
   final span = t.startSpan('linkerd $operation', kind: SpanKind.internal);
   try {
-    span.setStringAttribute('service.mesh', 'linkerd');
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('service.mesh', 'linkerd')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.proxyVersion != null) {
-        span.setStringAttribute('linkerd.proxy.version', res.proxyVersion!);
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString('linkerd.proxy.version', res.proxyVersion!)
+        ]));
       }
       if (res.sourceWorkload != null) {
-        span.setStringAttribute('source.workload', res.sourceWorkload!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('source.workload', res.sourceWorkload!)]));
       }
       if (res.sourceNamespace != null) {
-        span.setStringAttribute('source.namespace', res.sourceNamespace!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('source.namespace', res.sourceNamespace!)]));
       }
       if (res.destinationWorkload != null) {
-        span.setStringAttribute(
-          'destination.workload',
-          res.destinationWorkload!,
-        );
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+            'destination.workload',
+            res.destinationWorkload!,
+          )
+        ]));
       }
       if (res.destinationNamespace != null) {
-        span.setStringAttribute(
-          'destination.namespace',
-          res.destinationNamespace!,
-        );
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+            'destination.namespace',
+            res.destinationNamespace!,
+          )
+        ]));
       }
       if (res.authority != null) {
-        span.setStringAttribute('http.host', res.authority!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('http.host', res.authority!)]));
       }
       if (res.tls != null) {
-        span.setBoolAttribute('linkerd.tls', res.tls!);
+        span.addAttributes(
+            OTel.attributes([OTel.attributeBool('linkerd.tls', res.tls!)]));
       }
       if (res.latencyMs != null) {
-        span.setIntAttribute('http.client.duration', res.latencyMs!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('http.client.duration', res.latencyMs!)]));
       }
       if (res.statusCode != null) {
-        span.setIntAttribute('http.response.status_code', res.statusCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
       }
       if (res.errorCode != null) {
-        span.setStringAttribute('linkerd.error.code', res.errorCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('linkerd.error.code', res.errorCode!)]));
       }
-      final fail =
-          res.errorCode != null ||
+      final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.setStringAttribute(
-          ErrorResource.errorType.key,
-          res.errorCode ?? 'linkerd.error',
-        );
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+            ErrorResource.errorType.key,
+            res.errorCode ?? 'linkerd.error',
+          )
+        ]));
         span.setStatus(SpanStatusCode.Error, res.errorMessage);
       }
     }
