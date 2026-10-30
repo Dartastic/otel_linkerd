@@ -1,11 +1,12 @@
-// Licensed under the Dartastic Pro Software License Agreement.
+// Licensed under the Apache License, Version 2.0
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_linkerd_suppression.dart';
 
 class LinkerdResult {
+  /// Creates a result.
   const LinkerdResult({
     this.proxyVersion,
     this.sourceWorkload,
@@ -33,8 +34,13 @@ class LinkerdResult {
   final String? errorMessage;
 }
 
+/// What a traced call returned: the value for the caller plus fields
+/// recorded on the span.
 class LinkerdCallResult<T> {
+  /// Creates a call result.
   const LinkerdCallResult({required this.value, this.result});
+
+  /// The value returned to the caller.
   final T value;
   final LinkerdResult? result;
 }
@@ -42,75 +48,77 @@ class LinkerdCallResult<T> {
 Future<T> tracedLinkerd<T>({
   required String operation,
   required Future<LinkerdCallResult<T>> Function() invoke,
-  Tracer? tracer,
+  APITracer? tracer,
 }) async {
   if (linkerdInstrumentationSuppressed()) {
     final r = await invoke();
     return r.value;
   }
-  final t = tracer ?? OTel.tracerProvider().getTracer('otel_linkerd');
+  final t = tracer ?? OTelAPI.tracerProvider().getTracer('otel_linkerd');
   final span = t.startSpan('linkerd $operation', kind: SpanKind.internal);
   try {
-    span.addAttributes(
-        OTel.attributes([OTel.attributeString('service.mesh', 'linkerd')]));
+    span.addAttributes(OTelAPI.attributes(
+        [OTelAPI.attributeString('service.mesh', 'linkerd')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.proxyVersion != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString('linkerd.proxy.version', res.proxyVersion!)
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('linkerd.proxy.version', res.proxyVersion!)
         ]));
       }
       if (res.sourceWorkload != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('source.workload', res.sourceWorkload!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('source.workload', res.sourceWorkload!)]));
       }
       if (res.sourceNamespace != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('source.namespace', res.sourceNamespace!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('source.namespace', res.sourceNamespace!)
+        ]));
       }
       if (res.destinationWorkload != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
             'destination.workload',
             res.destinationWorkload!,
           )
         ]));
       }
       if (res.destinationNamespace != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
             'destination.namespace',
             res.destinationNamespace!,
           )
         ]));
       }
       if (res.authority != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('http.host', res.authority!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('http.host', res.authority!)]));
       }
       if (res.tls != null) {
-        span.addAttributes(
-            OTel.attributes([OTel.attributeBool('linkerd.tls', res.tls!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeBool('linkerd.tls', res.tls!)]));
       }
       if (res.latencyMs != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('http.client.duration', res.latencyMs!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeInt('http.client.duration', res.latencyMs!)]));
       }
       if (res.statusCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('http.response.status_code', res.statusCode!)
+        ]));
       }
       if (res.errorCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('linkerd.error.code', res.errorCode!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('linkerd.error.code', res.errorCode!)]));
       }
       final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
-            ErrorResource.errorType.key,
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
+            ErrorAttributes.errorType.key,
             res.errorCode ?? 'linkerd.error',
           )
         ]));
